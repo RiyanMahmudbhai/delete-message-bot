@@ -61,7 +61,7 @@ def main():
     dp.add_handler(CommandHandler("delete", delete_messages))
     
     # Add message handler to delete "Leech Started" from incoming messages
-    dp.add_handler(MessageHandler(filters.TEXT, message_handler))
+    dp.add_handler(MessageHandler(filters.Filters.text & ~filters.Filters.command, message_handler))
 
     # Start the bot
     updater.start_polling()
