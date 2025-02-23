@@ -1,6 +1,5 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-import pytz  # Required for timezone handling
 
 BOT_TOKEN = '7767525032:AAFkWn_ncuwdgHoIkJizAJowt2MzpWXgVnI'
 TARGET_TEXT = "➲ Leech Started :"
@@ -14,7 +13,7 @@ async def delete_all_filtered_messages(update: Update, context: ContextTypes.DEF
         try:
             chat_id = int(context.args[0])
         except ValueError:
-            await update.message.reply_text("❌ Invalid chat ID! Must be numeric.")
+            await update.message.reply_text("❌ Invalid chat ID! Must be numeric (e.g., -1001234567890)")
             return
 
         try:
@@ -49,10 +48,10 @@ async def delete_all_filtered_messages(update: Update, context: ContextTypes.DEF
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
 def main():
-    # Explicitly set timezone using pytz
+    # Modified application builder configuration
     application = Application.builder() \
         .token(BOT_TOKEN) \
-        .arbitrary_callback_data(True) \
+        .arbitrary_callback_data(False) \  # Disable callback data features
         .build()
         
     application.add_handler(CommandHandler("delete", delete_all_filtered_messages))
