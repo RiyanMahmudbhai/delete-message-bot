@@ -1,6 +1,6 @@
 import logging
 from telegram import Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters
 from telegram.error import BadRequest
 
 # Setup logging to get info on errors and debugging
