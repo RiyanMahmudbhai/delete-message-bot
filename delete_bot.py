@@ -51,7 +51,7 @@ def main():
     # Modified application builder configuration
     application = Application.builder() \
         .token(BOT_TOKEN) \
-        .arbitrary_callback_data(False) \  # Disable callback data features
+        .arbitrary_callback_data(False) \
         .build()
         
     application.add_handler(CommandHandler("delete", delete_all_filtered_messages))
