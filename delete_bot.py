@@ -21,22 +21,21 @@ def delete_messages(update, context):
             # Get the bot instance
             bot = Bot(token=TOKEN)
 
-            # Fetch the recent messages from the chat (up to 100 messages)
-            messages = bot.get_chat_history(chat_id=chat_id, limit=100)
+            # Retrieve chat details
+            chat = bot.get_chat(chat_id)
 
-            # Loop through the messages and delete those with the filter text
-            deleted_count = 0
-            for message in messages:
-                if "Leech Started" in message.text:
-                    bot.delete_message(chat_id=chat_id, message_id=message.message_id)
-                    deleted_count += 1
+            # Check if the bot is an admin with permissions to delete messages
+            if not chat.is_member or not chat.can_delete_messages:
+                update.message.reply_text("The bot does not have permission to delete messages in this chat.")
+                return
 
-            # Send a confirmation message to the user
-            if deleted_count > 0:
-                update.message.reply_text(f"Action completed: {deleted_count} messages deleted.")
-            else:
-                update.message.reply_text("No matching messages found.")
+            # Get messages from the chat (this is a placeholder, as direct message access may not be allowed)
+            # You may have to implement an external API or polling mechanism if you need to scan a large amount
+            # of messages over time.
 
+            # Send a completion message (since direct message retrieval might not be possible)
+            update.message.reply_text("Message deletion is not possible due to API limitations.")
+            
         except BadRequest as e:
             update.message.reply_text(f"Error: {e}")
     else:
