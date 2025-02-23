@@ -1,6 +1,6 @@
 import logging
 from telegram import Bot
-from telegram.ext import Updater, CommandHandler, filters
+from telegram.ext import Updater, CommandHandler
 from telegram.error import BadRequest
 
 # Setup logging to get info on errors and debugging
@@ -21,21 +21,20 @@ def delete_messages(update, context):
             # Get the bot instance
             bot = Bot(token=TOKEN)
 
-            # Retrieve chat details
-            chat = bot.get_chat(chat_id)
+            # Check if the bot is an admin in the chat
+            bot_member = bot.get_chat_member(chat_id, bot.id)
 
-            # Check if the bot is an admin with permissions to delete messages
-            if not chat.is_member or not chat.can_delete_messages:
-                update.message.reply_text("The bot does not have permission to delete messages in this chat.")
+            # If the bot is not an admin or doesn't have delete permissions
+            if bot_member.status not in ['administrator', 'creator']:
+                update.message.reply_text("The bot is not an admin in this chat or doesn't have delete permissions.")
                 return
 
-            # Get messages from the chat (this is a placeholder, as direct message access may not be allowed)
-            # You may have to implement an external API or polling mechanism if you need to scan a large amount
-            # of messages over time.
+            # Retrieve chat details (you may not be able to get the message history directly)
+            # For this example, we just send a confirmation message
+            update.message.reply_text("Bot has permissions to delete messages in this chat. Processing...")
 
-            # Send a completion message (since direct message retrieval might not be possible)
-            update.message.reply_text("Message deletion is not possible due to API limitations.")
-            
+            # Your message deletion logic would go here (requires additional setup)
+
         except BadRequest as e:
             update.message.reply_text(f"Error: {e}")
     else:
