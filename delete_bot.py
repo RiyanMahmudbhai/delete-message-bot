@@ -1,73 +1,43 @@
-import logging
+import os
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext
-from telegram.error import BadRequest
+from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
-# Setup logging to get info on errors and debugging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure your bot token here
+BOT_TOKEN = "7767525032:AAFkWn_ncuwdgHoIkJizAJowt2MzpWXgVnI"
 
-# Replace with your bot's token
-TOKEN = '7767525032:AAFkWn_ncuwdgHoIkJizAJowt2MzpWXgVnI'
+# Configure your channel mappings (source: destination)
+CHANNEL_MAPPING = {
+    -1002211636314: -1002492502401,  # Source Channel 1: Dest Channel 1
+    -1001122334455: -1005566778899,  # Source Channel 2: Dest Channel 2
+}
 
-# Function to delete messages containing the specific text
-def delete_messages(update: Update, context: CallbackContext):
-    # Check if the user has provided a chat ID
-    if len(context.args) == 1:
-        chat_id = context.args[0]
-
-        try:
-            # Get the bot instance
-            bot = update.message.bot
-
-            # Check if the bot is an admin in the chat
-            bot_member = bot.get_chat_member(chat_id, bot.id)
-
-            # If the bot is not an admin or doesn't have delete permissions
-            if bot_member.status not in ['administrator', 'creator']:
-                update.message.reply_text("The bot is not an admin in this chat or doesn't have delete permissions.")
-                return
-
-            # Send a confirmation message to the user
-            update.message.reply_text("Bot has permissions to delete messages in this chat. Processing...")
-
-        except BadRequest as e:
-            update.message.reply_text(f"Error: {e}")
-    else:
-        update.message.reply_text("Please provide the correct chat ID.")
-
-# Function to monitor incoming messages and delete if matching text is found
-def message_handler(update: Update, context: CallbackContext):
-    # Ensure the message is of type text
-    if update.message and update.message.text:
-        message_text = update.message.text
-        if "Leech Started" in message_text:
-            try:
-                # Delete the message if it contains "Leech Started"
-                update.message.delete()
-                logging.info(f"Deleted message: {update.message.message_id} from {update.message.chat_id}")
-            except BadRequest as e:
-                logging.error(f"Error deleting message: {e}")
-
-# Start the bot and listen for commands
-def start(update, context):
-    update.message.reply_text("Welcome! Use /delete <chat_id> to delete filtered messages.")
-
-# Main function to handle commands and updates
-def main():
-    updater = Updater(TOKEN, use_context=True)
-
-    # Add command handler for the '/delete' command
-    dp = updater.dispatcher
-    dp.add_handler(CommandHandler("delete", delete_messages))
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.effective_message
+    source_chat_id = message.chat_id
     
-    # Add message handler to delete "Leech Started" from incoming messages
-    dp.add_handler(MessageHandler(filters.Filters.text & ~filters.Filters.command, message_handler))
+    # Check if message is from a mapped source channel
+    if source_chat_id not in CHANNEL_MAPPING:
+        return
+    
+    # Check if message contains a video file
+    if message.document and message.document.mime_type.startswith('video/'):
+        dest_chat_id = CHANNEL_MAPPING[source_chat_id]
+        
+        try:
+            # Forward the message with the original filename
+            await message.forward(dest_chat_id)
+        except Exception as e:
+            print(f"Error forwarding message: {e}")
 
-    # Start the bot
-    updater.start_polling()
-    updater.idle()
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    print("Starting bot...")
+    
+    app = Application.builder().token(BOT_TOKEN).build()
+    
+    # Add handler for channel messages
+    app.add_handler(MessageHandler(
+        filters.ChatType.CHANNEL & filters.Document.VIDEO,
+        handle_message
+    ))
+    
+    app.run_polling()
