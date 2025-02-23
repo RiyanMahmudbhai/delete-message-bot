@@ -39,14 +39,16 @@ def delete_messages(update: Update, context: CallbackContext):
 
 # Function to monitor incoming messages and delete if matching text is found
 def message_handler(update: Update, context: CallbackContext):
-    message_text = update.message.text
-    if "Leech Started" in message_text:
-        try:
-            # Delete the message if it contains "Leech Started"
-            update.message.delete()
-            logging.info(f"Deleted message: {update.message.message_id} from {update.message.chat_id}")
-        except BadRequest as e:
-            logging.error(f"Error deleting message: {e}")
+    # Ensure the message is of type text
+    if update.message and update.message.text:
+        message_text = update.message.text
+        if "Leech Started" in message_text:
+            try:
+                # Delete the message if it contains "Leech Started"
+                update.message.delete()
+                logging.info(f"Deleted message: {update.message.message_id} from {update.message.chat_id}")
+            except BadRequest as e:
+                logging.error(f"Error deleting message: {e}")
 
 # Start the bot and listen for commands
 def start(update, context):
