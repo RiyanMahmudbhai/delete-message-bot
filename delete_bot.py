@@ -1,59 +1,58 @@
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+import logging
+from telegram import Bot
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.error import BadRequest
 
-BOT_TOKEN = '7767525032:AAFkWn_ncuwdgHoIkJizAJowt2MzpWXgVnI'
-TARGET_TEXT = "➲ Leech Started :"
+# Setup logging to get info on errors and debugging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-async def delete_all_filtered_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        # Validate command format
-        if not context.args:
-            await update.message.reply_text("⚠️ Usage: /delete <channel_chat_id>")
-            return
+# Replace with your bot's token
+TOKEN = '7767525032:AAFkWn_ncuwdgHoIkJizAJowt2MzpWXgVnI'
 
-        # Convert chat ID to integer
+# Function to delete messages containing the specific text
+def delete_messages(update, context):
+    # Check if the user has provided a chat ID
+    if len(context.args) == 1:
+        chat_id = context.args[0]
+
         try:
-            chat_id = int(context.args[0])
-        except ValueError:
-            await update.message.reply_text("❌ Invalid chat ID! Must be numeric (e.g., -1001234567890)")
-            return
+            # Get the bot instance
+            bot = Bot(token=TOKEN)
 
-        # Verify user is channel admin
-        try:
-            admins = await context.bot.get_chat_administrators(chat_id)
-            if update.effective_user.id not in [admin.user.id for admin in admins]:
-                await update.message.reply_text("⛔️ You must be admin in the target channel!")
-                return
-        except Exception as e:
-            await update.message.reply_text(f"❌ Admin check failed: {str(e)}")
-            return
+            # Getting the chat where the bot is looking for messages
+            # Assuming the bot has permissions in the channel
+            chat = bot.get_chat(chat_id)
 
-        # Start cleanup process
-        await update.message.reply_text("🔍 Scanning messages...")
-        deleted_count = 0
-        
-        # Modern message iteration
-        async for message in context.bot.get_chat_history(chat_id=chat_id):
-            if message.text and TARGET_TEXT in message.text:
-                try:
-                    await message.delete()
-                    deleted_count += 1
-                except Exception as e:
-                    print(f"Error deleting message {message.message_id}: {e}")
+            # Start scanning messages from the chat
+            for message in chat.get_messages():
+                if "Leech Started" in message.text:
+                    bot.delete_message(chat_id=chat_id, message_id=message.message_id)
 
-        await update.message.reply_text(
-            f"✅ Cleanup complete!\n"
-            f"🗑 Deleted {deleted_count} messages containing '{TARGET_TEXT}'"
-        )
+            # Send a confirmation message to the user
+            update.message.reply_text("Action completed: Filtered messages deleted.")
+        except BadRequest as e:
+            update.message.reply_text(f"Error: {e}")
+    else:
+        update.message.reply_text("Please provide the correct chat ID.")
 
-    except Exception as e:
-        await update.message.reply_text(f"❌ Critical Error: {str(e)}")
+# Start the bot and listen for commands
+def start(update, context):
+    update.message.reply_text("Welcome! Use /delete <chat_id> to delete filtered messages.")
 
+# Main function to handle commands and update the bot
 def main():
-    application = Application.builder().token(BOT_TOKEN).build()
-    application.add_handler(CommandHandler("delete", delete_all_filtered_messages))
-    print("Bot running in manual cleanup mode...")
-    application.run_polling()
+    updater = Updater(TOKEN, use_context=True)
 
-if __name__ == "__main__":
+    # Add command handler for the '/delete' command
+    dp = updater.dispatcher
+    dp.add_handler(CommandHandler("delete", delete_messages))
+    dp.add_handler(CommandHandler("start", start))
+
+    # Start the bot
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
     main()
