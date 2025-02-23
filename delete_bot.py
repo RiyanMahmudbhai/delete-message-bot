@@ -30,14 +30,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             print(f"Error forwarding message: {e}")
 
 if __name__ == "__main__":
-    print("Starting bot...")
-    
     app = Application.builder().token(BOT_TOKEN).build()
-    
-    # Add handler for channel messages
     app.add_handler(MessageHandler(
         filters.ChatType.CHANNEL & filters.Document.VIDEO,
         handle_message
     ))
-    
     app.run_polling()
