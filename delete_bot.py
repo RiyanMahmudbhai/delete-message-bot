@@ -1,6 +1,6 @@
 import logging
 from telegram import Bot
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters
+from telegram.ext import Updater, CommandHandler, filters
 from telegram.error import BadRequest
 
 # Setup logging to get info on errors and debugging
@@ -21,17 +21,22 @@ def delete_messages(update, context):
             # Get the bot instance
             bot = Bot(token=TOKEN)
 
-            # Getting the chat where the bot is looking for messages
-            # Assuming the bot has permissions in the channel
-            chat = bot.get_chat(chat_id)
+            # Fetch the recent messages from the chat (up to 100 messages)
+            messages = bot.get_chat_history(chat_id=chat_id, limit=100)
 
-            # Start scanning messages from the chat
-            for message in chat.get_messages():
+            # Loop through the messages and delete those with the filter text
+            deleted_count = 0
+            for message in messages:
                 if "Leech Started" in message.text:
                     bot.delete_message(chat_id=chat_id, message_id=message.message_id)
+                    deleted_count += 1
 
             # Send a confirmation message to the user
-            update.message.reply_text("Action completed: Filtered messages deleted.")
+            if deleted_count > 0:
+                update.message.reply_text(f"Action completed: {deleted_count} messages deleted.")
+            else:
+                update.message.reply_text("No matching messages found.")
+
         except BadRequest as e:
             update.message.reply_text(f"Error: {e}")
     else:
