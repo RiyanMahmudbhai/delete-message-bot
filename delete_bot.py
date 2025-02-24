@@ -110,10 +110,14 @@ async def set_mapping(client, message):
             return await message.reply("❌ **Usage:** /set [source_id] [dest_id]")
 
         _, source, dest = args
+
+        # Remove square brackets if they exist
+        source = source.strip("[]")
+        dest = dest.strip("[]")
         
         try:
-            source = int(source)
-            dest = int(dest)
+            source = int(source)  # Convert source to integer
+            dest = int(dest)      # Convert dest to integer
         except ValueError:
             return await message.reply("❌ IDs must be integers!")
 
@@ -138,6 +142,8 @@ async def set_mapping(client, message):
                     return await message.reply(f"❌ I need post permissions in {purpose} channel!")
             except PeerIdInvalid:
                 return await message.reply(f"❌ I'm not in the {purpose} channel!")
+            except Exception as e:
+                return await message.reply(f"❌ Error while checking bot permissions: {str(e)}")
 
         # Check existing mapping
         existing = await client.mappings.find_one({"source": source, "destination": dest})
@@ -158,27 +164,6 @@ async def set_mapping(client, message):
         await message.reply(f"❌ Error: {str(e)}")
         logger.error(f"Set mapping error: {str(e)}", exc_info=True)
 
-@bot.on_message(filters.command("list") & filters.private)
-async def list_mappings(client, message):
-    try:
-        mappings = []
-        async for doc in client.mappings.find({}):
-            mappings.append(
-                f"• `{doc['source']}` → `{doc['destination']}` "
-                f"(by <a href='tg://user?id={doc['added_by']}'>{doc['added_by']}</a>)"
-            )
-        
-        if not mappings:
-            return await message.reply("ℹ️ No active mappings!")
-        
-        await message.reply(
-            "📋 **Active Mappings:**\n\n" + "\n".join(mappings),
-            parse_mode="html",
-            disable_web_page_preview=True
-        )
-    except Exception as e:
-        await message.reply(f"❌ Error: {str(e)}")
-        logger.error(f"List mappings error: {str(e)}", exc_info=True)
 
 @bot.on_message(filters.command("delete") & filters.private)
 async def delete_mapping(client, message):
