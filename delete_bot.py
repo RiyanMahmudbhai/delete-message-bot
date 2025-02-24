@@ -55,7 +55,6 @@ bot = MediaForwardBot()
 
 @bot.on_message(filters.command("start") & filters.private)
 async def start_command(client, message):
-    # In start_command handler:
     await message.reply(
         "🤖 **Media Forwarding Bot**\n\n"
         "I can forward media from channels you specify! Here's how:\n"
@@ -67,14 +66,12 @@ async def start_command(client, message):
         "/list - Show all mappings\n"
         "/delete [source] [dest] - Remove mapping\n"
         "/getid - Get channel ID by forwarding message\n"
-        "/help - Show help"
+        "/help - Show help",
+        parse_mode="markdown"
     )
-
-
 
 @bot.on_message(filters.command("help") & filters.private)
 async def help_command(client, message):
-    # In help_command:
     await message.reply(
         "🆘 **Help**\n\n"
         "**Available Commands:**\n"
@@ -86,9 +83,8 @@ async def help_command(client, message):
         "1. Forward any channel message to me and use /getid\n"
         "2. Use /set with the obtained IDs\n"
         "3. Make sure I'm admin in both channels!",
+        parse_mode="markdown"
     )
-
-
 
 @bot.on_message(filters.command("getid") & filters.private)
 async def get_id_command(client, message):
@@ -100,6 +96,7 @@ async def get_id_command(client, message):
         f"**Channel ID:** `{chat.id}`\n"
         f"**Name:** {chat.title}\n"
         f"**Type:** {chat.type}",
+        parse_mode="markdown"
     )
 
 @bot.on_message(filters.command("set") & filters.private)
@@ -110,31 +107,34 @@ async def set_mapping(client, message):
             return await message.reply("❌ **Usage:** /set [source_id] [dest_id]")
 
         _, source, dest = args
-
-        # Remove square brackets if they exist
-        source = source.strip("[]")
-        dest = dest.strip("[]")
         
         try:
-            source = int(source)  # Convert source to integer
-            dest = int(dest)      # Convert dest to integer
+            source = int(source)
+            dest = int(dest)
         except ValueError:
             return await message.reply("❌ IDs must be integers!")
 
-        # Verify BOT permissions (not user permissions)
+        # Verify user permissions
+        try:
+            user = message.from_user
+            for chat_id in [source, dest]:
+                member = await client.get_chat_member(chat_id, user.id)
+                if member.status not in ["administrator", "creator"]:
+                    return await message.reply(f"❌ You're not admin in {chat_id}!")
+        except (PeerIdInvalid, ChannelPrivate):
+            return await message.reply("❌ Invalid channel ID or I'm not in that channel!")
+        except UserNotParticipant:
+            return await message.reply("❌ You're not in that channel!")
+
+        # Verify bot permissions
         bot_user = await client.get_me()
         for chat_id, purpose in [(source, "source"), (dest, "destination")]:
             try:
-                # Check if BOT is admin in the channel
                 member = await client.get_chat_member(chat_id, bot_user.id)
-                if member.status not in ["administrator", "creator"]:
-                    return await message.reply(f"❌ I'm not admin in the {purpose} channel ({chat_id})!")
                 if not member.can_post_messages:
-                    return await message.reply(f"❌ I need post permissions in {purpose} channel ({chat_id})!")
-            except (PeerIdInvalid, ChannelPrivate):
-                return await message.reply(f"❌ I'm not in the {purpose} channel ({chat_id}) or it's invalid!")
-            except UserNotParticipant:
-                return await message.reply(f"❌ I'm not in the {purpose} channel ({chat_id})!")
+                    return await message.reply(f"❌ I need post permissions in {purpose} channel!")
+            except PeerIdInvalid:
+                return await message.reply(f"❌ I'm not in the {purpose} channel!")
 
         # Check existing mapping
         existing = await client.mappings.find_one({"source": source, "destination": dest})
@@ -145,7 +145,7 @@ async def set_mapping(client, message):
         await client.mappings.insert_one({
             "source": source,
             "destination": dest,
-            "added_by": message.from_user.id,
+            "added_by": user.id,
             "date_added": datetime.datetime.utcnow()
         })
         
@@ -154,6 +154,28 @@ async def set_mapping(client, message):
     except Exception as e:
         await message.reply(f"❌ Error: {str(e)}")
         logger.error(f"Set mapping error: {str(e)}", exc_info=True)
+
+@bot.on_message(filters.command("list") & filters.private)
+async def list_mappings(client, message):
+    try:
+        mappings = []
+        async for doc in client.mappings.find({}):
+            mappings.append(
+                f"• `{doc['source']}` → `{doc['destination']}` "
+                f"(by <a href='tg://user?id={doc['added_by']}'>{doc['added_by']}</a>)"
+            )
+        
+        if not mappings:
+            return await message.reply("ℹ️ No active mappings!")
+        
+        await message.reply(
+            "📋 **Active Mappings:**\n\n" + "\n".join(mappings),
+            parse_mode="html",
+            disable_web_page_preview=True
+        )
+    except Exception as e:
+        await message.reply(f"❌ Error: {str(e)}")
+        logger.error(f"List mappings error: {str(e)}", exc_info=True)
 
 @bot.on_message(filters.command("delete") & filters.private)
 async def delete_mapping(client, message):
