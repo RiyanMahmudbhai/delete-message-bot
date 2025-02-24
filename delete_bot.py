@@ -68,8 +68,9 @@ async def start_command(client, message):
         "/delete [source] [dest] - Remove mapping\n"
         "/getid - Get channel ID by forwarding message\n"
         "/help - Show help",
-        parse_mode="markdown"  # Changed to legacy markdown
+        parse_mode="markdownv2"  # Updated to markdownv2
     )
+
 
 @bot.on_message(filters.command("help") & filters.private)
 async def help_command(client, message):
