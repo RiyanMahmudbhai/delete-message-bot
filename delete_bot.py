@@ -105,7 +105,7 @@ async def get_id_command(client, message):
         f"**Channel ID:** `{chat.id}`\n"
         f"**Name:** {chat.title}\n"
         f"**Type:** {chat.type}",
-        parse_mode="markdownv2"
+        parse_mode="markdown"
     )
 
 @bot.on_message(filters.command("set") & filters.private)
