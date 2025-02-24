@@ -1,6 +1,3 @@
-uvloop==0.19.0
-tgcrypto==1.2.5
-pyrogram==2.0.106  # Updated compatible version
-pyaes==1.6.1
-setuptools==67.8.0  # Specific compatible version
-setuptools_scm==7.1.0  # Legacy version for compatibility
+uvloop
+tgcrypto
+pyrogram~=2.0.59
