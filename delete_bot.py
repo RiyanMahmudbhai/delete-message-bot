@@ -1,69 +1,99 @@
-import requests
-from telegram import Update, InputFile
-from telegram.ext import Application, MessageHandler, filters, ContextTypes
+import logging
+import asyncio
+from pyrogram import Client, filters
+from pyrogram.errors import PeerIdInvalid, ChatWriteForbidden, FloodWait
 
-BOT_TOKEN = "7767525032:AAFkWn_ncuwdgHoIkJizAJowt2MzpWXgVnI"
-CHANNEL_MAPPING = {
-    -1002211636314: -1002492502401,
-}
+# Configuration Class
+class Config:
+    BOT_TOKEN = "7767525032:AAFkWn_ncuwdgHoIkJizAJowt2MzpWXgVnI"
+    API_ID = "25902474"
+    API_HASH = "e0613c7a7b94e0025a20f5cf7bc69eee"
+    CHANNEL = [
+        "-2222222222222:-1111111111111",
+        "-1002211636314:-1002492502401",
+        "-1002386644256:-1002484982348"
+    ]  # Add multiple mappings as needed
 
-async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.effective_message
-    source_chat_id = message.chat_id
+# Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-    if source_chat_id not in CHANNEL_MAPPING:
-        return
+class MediaForwardBot(Client, Config):
+    def __init__(self):
+        super().__init__(
+            name="MediaForwardBot",
+            bot_token=self.BOT_TOKEN,
+            api_id=self.API_ID,
+            api_hash=self.API_HASH,
+            workers=5  # Reduced workers for better rate limiting
+        )
 
-    dest_chat_id = CHANNEL_MAPPING[source_chat_id]
-    file_name = None
-    file_id = None
-    mime_type = None
+    async def start(self):
+        await super().start()
+        me = await self.get_me()
+        logger.info(f"Bot started as {me.first_name} (@{me.username})")
 
-    # Get file details based on message type
-    if message.video:
-        file_id = message.video.file_id
-        file_name = message.video.file_name or f"video_{message.video.file_unique_id}.mp4"
-        mime_type = message.video.mime_type
-    elif message.document and message.document.mime_type.startswith('video/'):
-        file_id = message.document.file_id
-        file_name = message.document.file_name
-        mime_type = message.document.mime_type
+    async def stop(self):
+        await super().stop()
+        logger.info("Bot stopped.")
 
-    if not file_id or not file_name:
-        return
+# Initialize Bot
+bot = MediaForwardBot()
 
+@bot.on_message(filters.channel & (filters.video | filters.document))
+async def forward_media(client, message):
     try:
-        # Get file download URL from Telegram
-        file = await context.bot.get_file(file_id)
-        download_url = file.file_path
+        # Check if the message contains a video or document
+        if not (message.video or message.document):
+            return
 
-        # Stream file directly from Telegram's servers
-        with requests.get(download_url, stream=True) as response:
-            response.raise_for_status()
-            
-            # Create a file-like object from the stream
-            file_stream = InputFile(
-                response.raw,
-                filename=file_name,
-                mime_type=mime_type
-            )
+        # Validate media type for documents
+        if message.document and not message.document.mime_type.startswith('video/'):
+            return
 
-            # Send as document with original filename and mime type
-            await context.bot.send_document(
-                chat_id=dest_chat_id,
-                document=file_stream,
-                filename=file_name,
-                caption=""
-            )
+        for mapping in client.CHANNEL:  # Use instance configuration
+            try:
+                source, destination = mapping.split(":")
+            except ValueError:
+                logger.error(f"Invalid mapping format: {mapping}. Use 'source:destination'")
+                continue
+
+            if str(message.chat.id) != source:
+                continue
+
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    await asyncio.sleep(0.5)  # Throttle between forwards
+                    await message.copy(int(destination))
+                    logger.info(f"Forwarded content from {source} to {destination}")
+                    break  # Success - exit retry loop
+                except FloodWait as e:
+                    wait_time = e.value + 5  # Add buffer time
+                    logger.warning(f"FloodWait: Waiting {wait_time}s (Attempt {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(wait_time)
+                except ChatWriteForbidden:
+                    logger.error(f"Bot lacks permissions in destination: {destination}")
+                    break  # Non-retryable error
+                except PeerIdInvalid:
+                    logger.error(f"Invalid destination ID: {destination}")
+                    break  # Non-retryable error
+                except Exception as e:
+                    logger.error(f"Unexpected error: {str(e)}")
+                    if attempt == max_retries - 1:
+                        logger.error(f"Failed after {max_retries} attempts")
+                    await asyncio.sleep(5)  # Wait before retry
 
     except Exception as e:
-        print(f"Error processing video: {e}")
+        logger.error(f"Critical error in handler: {str(e)}", exc_info=True)
 
 if __name__ == "__main__":
-    app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(MessageHandler(
-        filters.ChatType.CHANNEL & 
-        (filters.VIDEO | (filters.Document.VIDEO)),
-        handle_video
-    ))
-    app.run_polling()
+    try:
+        bot.run()
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.critical(f"Fatal startup error: {str(e)}", exc_info=True)
