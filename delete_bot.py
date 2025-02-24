@@ -57,17 +57,17 @@ bot = MediaForwardBot()
 async def start_command(client, message):
     await message.reply(
         "🤖 **Media Forwarding Bot**\n\n"
-        "I can forward media from channels you specify! Here's how:\n"
-        "1. Add me as admin in both source and destination channels\n"
-        "2. Use /set to create mappings\n"
-        "3. I'll auto-forward new media\n\n"
+        "I can forward media from channels you specify\! Here's how:\n"
+        "1\. Add me as admin in both source and destination channels\n"
+        "2\. Use /set to create mappings\n"
+        "3\. I'll auto\-forward new media\n\n"
         "**Commands:**\n"
-        "/set [source] [dest] - Create mapping\n"
-        "/list - Show all mappings\n"
-        "/delete [source] [dest] - Remove mapping\n"
-        "/getid - Get channel ID by forwarding message\n"
-        "/help - Show help",
-        parse_mode="markdown"
+        "/set \[source\] \[dest\] \- Create mapping\n"
+        "/list \- Show all mappings\n"
+        "/delete \[source\] \[dest\] \- Remove mapping\n"
+        "/getid \- Get channel ID by forwarding message\n"
+        "/help \- Show help",
+        parse_mode="markdownv2"
     )
 
 @bot.on_message(filters.command("help") & filters.private)
@@ -75,17 +75,16 @@ async def help_command(client, message):
     await message.reply(
         "🆘 **Help**\n\n"
         "**Available Commands:**\n"
-        "/set - Create source-destination mapping\n"
-        "/list - Show all active mappings\n"
-        "/delete - Remove a mapping\n"
-        "/getid - Get channel ID by forwarding message\n\n"
+        "/set \- Create source\-destination mapping\n"
+        "/list \- Show all active mappings\n"
+        "/delete \- Remove a mapping\n"
+        "/getid \- Get channel ID by forwarding message\n\n"
         "**Usage:**\n"
-        "1. Forward any channel message to me and use /getid\n"
-        "2. Use /set with the obtained IDs\n"
-        "3. Make sure I'm admin in both channels!",
-        parse_mode="markdown"
+        "1\. Forward any channel message to me and use /getid\n"
+        "2\. Use /set with the obtained IDs\n"
+        "3\. Make sure I'm admin in both channels\!",
+        parse_mode="markdownv2"
     )
-
 @bot.on_message(filters.command("getid") & filters.private)
 async def get_id_command(client, message):
     if not message.forward_from_chat:
@@ -96,7 +95,7 @@ async def get_id_command(client, message):
         f"**Channel ID:** `{chat.id}`\n"
         f"**Name:** {chat.title}\n"
         f"**Type:** {chat.type}",
-        parse_mode="markdown"
+        parse_mode="markdownv2"
     )
 
 @bot.on_message(filters.command("set") & filters.private)
