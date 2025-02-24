@@ -68,7 +68,7 @@ async def start_command(client, message):
         "/delete [source] [dest] - Remove mapping\n"
         "/getid - Get channel ID by forwarding message\n"
         "/help - Show help",
-        parse_mode="markdownv2"  # Updated to markdownv2
+        parse_mode="Markdown"  # Changed to "Markdown"
     )
 
 
