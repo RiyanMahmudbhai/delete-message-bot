@@ -89,13 +89,7 @@ async def help_command(client, message):
     )
 
 
-# In get_id_command:
-await message.reply(
-    f"**Channel ID:** `{chat.id}`\n"
-    f"**Name:** {chat.title}\n"
-    f"**Type:** {chat.type}",
-    parse_mode="markdown"  # Changed from markdownv2
-)
+
 @bot.on_message(filters.command("getid") & filters.private)
 async def get_id_command(client, message):
     if not message.forward_from_chat:
