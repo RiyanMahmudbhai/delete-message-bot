@@ -101,7 +101,6 @@ async def get_id_command(client, message):
         f"**Name:** {chat.title}\n"
         f"**Type:** {chat.type}",
     )
-
 @bot.on_message(filters.command("set") & filters.private)
 async def set_mapping(client, message):
     try:
@@ -132,18 +131,21 @@ async def set_mapping(client, message):
             return await message.reply("❌ Invalid channel ID or I'm not in that channel!")
         except UserNotParticipant:
             return await message.reply("❌ You're not in that channel!")
+        except Exception as e:
+            return await message.reply(f"❌ Error checking user permissions: {str(e)}")
 
         # Verify bot permissions
         bot_user = await client.get_me()
         for chat_id, purpose in [(source, "source"), (dest, "destination")]:
             try:
+                # Check if the bot is in the channel and has the necessary permissions
                 member = await client.get_chat_member(chat_id, bot_user.id)
                 if not member.can_post_messages:
                     return await message.reply(f"❌ I need post permissions in {purpose} channel!")
             except PeerIdInvalid:
                 return await message.reply(f"❌ I'm not in the {purpose} channel!")
             except Exception as e:
-                return await message.reply(f"❌ Error while checking bot permissions: {str(e)}")
+                return await message.reply(f"❌ Error while checking bot permissions in {purpose} channel: {str(e)}")
 
         # Check existing mapping
         existing = await client.mappings.find_one({"source": source, "destination": dest})
