@@ -67,9 +67,9 @@ async def start_command(client, message):
         "/list - Show all mappings\n"
         "/delete [source] [dest] - Remove mapping\n"
         "/getid - Get channel ID by forwarding message\n"
-        "/help - Show help",
-        parse_mode="Markdown"  # Changed to "Markdown"
+        "/help - Show help"
     )
+
 
 
 @bot.on_message(filters.command("help") & filters.private)
@@ -86,7 +86,6 @@ async def help_command(client, message):
         "1. Forward any channel message to me and use /getid\n"
         "2. Use /set with the obtained IDs\n"
         "3. Make sure I'm admin in both channels!",
-        parse_mode="markdown"
     )
 
 
@@ -101,7 +100,6 @@ async def get_id_command(client, message):
         f"**Channel ID:** `{chat.id}`\n"
         f"**Name:** {chat.title}\n"
         f"**Type:** {chat.type}",
-        parse_mode="markdown"
     )
 
 @bot.on_message(filters.command("set") & filters.private)
